@@ -1,9 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.ComponentModel;
-using System.Configuration;
+using System.Diagnostics;
 using System.Runtime.CompilerServices;
-using System.Runtime.InteropServices;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
@@ -43,7 +41,7 @@ namespace BfntConverterApp
         }
 
         private readonly ViewModel _viewModel = new();
-        private Image? _image;
+        private Image<Bgra32>? _image;
         private string? _filePath;
         private BfntMetadata? _bfntMetadata;
 
@@ -97,6 +95,13 @@ namespace BfntConverterApp
                 case "close":
                     Close();
                     break;
+                case "help":
+                    Process.Start(new ProcessStartInfo
+                    {
+                        FileName = "https://pronama.jp/bfnt-converter",
+                        UseShellExecute = true
+                    });
+                    break;
             }
         }
 
@@ -118,8 +123,8 @@ namespace BfntConverterApp
             _viewModel.StatusText = "";
             ZoomImage.Source = null;
 
-            try
-            {
+            //try
+            //{
                 var configuration = new Configuration(
                     new PngConfigurationModule(),
                     new JpegConfigurationModule(),
@@ -140,7 +145,7 @@ namespace BfntConverterApp
                     if (format.Name == "BFNT")
                     {
                         _bfntMetadata = imageInfo.Metadata.GetBfntMetadata();
-                        _viewModel.StatusText = $"{_bfntMetadata.ColorCount}色 {_bfntMetadata.Xdots}x{_bfntMetadata.Ydots} {_bfntMetadata.Start}-{_bfntMetadata.End} パレットデータ{(_bfntMetadata.HasPalette ? "あり" : "なし")}";
+                        _viewModel.StatusText = $"{_bfntMetadata.ColorCount:#,0}色 ({_bfntMetadata.ColorBits + 1}bit)   {_bfntMetadata.Xdots}x{_bfntMetadata.Ydots}   {_bfntMetadata.Start}-{_bfntMetadata.End}   パレットデータ{(_bfntMetadata.HasPalette ? "あり" : "なし")}";
                     }
                     else
                     {
@@ -158,11 +163,11 @@ namespace BfntConverterApp
 
                 SetTitle(file);
                 _filePath = file;
-            }
-            catch (Exception ex)
-            {
-                MessageBox.Show(ex.Message);
-            }
+            //}
+            //catch (Exception ex)
+            //{
+            //    MessageBox.Show(ex.Message);
+            //}
         }
 
         private void SetImage(Image<Bgra32> image)
@@ -239,9 +244,9 @@ namespace BfntConverterApp
                 {
                     return;
                 }
-                byte[] pixels = new byte[(int)bitmapSource.Width * (int)bitmapSource.Height * 4];
+                var pixels = new byte[(int)bitmapSource.Width * (int)bitmapSource.Height * 4];
 
-                // BitmapSourceから配列にコピー
+                // BitmapSource から配列にコピー
                 var stride = ((int)bitmapSource.Width * bitmapSource.Format.BitsPerPixel + 7) / 8;
                 bitmapSource.CopyPixels(pixels, stride, 0);
                 var image = Image.LoadPixelData<Bgra32>(pixels, (int)bitmapSource.Width, (int)bitmapSource.Height);

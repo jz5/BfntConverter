@@ -7,6 +7,8 @@ namespace Pronama.ImageSharp.Formats.Bfnt
 {
     public sealed class BfntDecoder : IImageDecoder, IBfntDecoderOptions, IImageInfoDetector
     {
+        public int Columns { get; set; } = 16;
+
         public Image<TPixel> Decode<TPixel>(Configuration configuration, Stream stream) where TPixel : unmanaged, IPixel<TPixel>
         {
             var decoder = new BfntDecoderCore(configuration, this);
@@ -39,5 +41,6 @@ namespace Pronama.ImageSharp.Formats.Bfnt
         {
             throw new NotImplementedException();
         }
+
     }
 }

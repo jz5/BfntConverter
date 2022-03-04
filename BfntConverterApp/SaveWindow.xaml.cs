@@ -1,34 +1,15 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.ComponentModel;
-using System.Configuration;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+using System.Runtime.CompilerServices;
 using System.Windows;
-using System.Windows.Controls;
-using System.Windows.Data;
-using System.Windows.Documents;
-using System.Windows.Input;
-using System.Windows.Interop;
-using System.Windows.Markup.Localizer;
-using System.Windows.Media;
-using System.Windows.Media.Imaging;
-using System.Windows.Shapes;
 using Microsoft.Win32;
+using Microsoft.WindowsAPICodePack.Dialogs;
 using Pronama.ImageSharp.Formats.Bfnt;
 using SixLabors.ImageSharp;
-using SixLabors.ImageSharp.Formats.Bmp;
-using SixLabors.ImageSharp.Formats.Gif;
-using SixLabors.ImageSharp.Formats.Jpeg;
-using SixLabors.ImageSharp.Formats.Pbm;
+using SixLabors.ImageSharp.Formats;
 using SixLabors.ImageSharp.Formats.Png;
-using SixLabors.ImageSharp.Formats.Tga;
-using SixLabors.ImageSharp.Formats.Tiff;
 using SixLabors.ImageSharp.Formats.Webp;
 using SixLabors.ImageSharp.PixelFormats;
-using Configuration = SixLabors.ImageSharp.Configuration;
-using Image = SixLabors.ImageSharp.Image;
 
 namespace BfntConverterApp
 {
@@ -110,8 +91,16 @@ namespace BfntConverterApp
 
             private void Calc()
             {
+                if (Xdots == 0 || Ydots == 0)
+                {
+                    Indivisible = true;
+                    return;
+                }
+
                 var count = (int)Math.Ceiling((double)Width / Xdots) * (int)Math.Ceiling((double)Height / Ydots);
                 End = (ushort)(Start + count - 1);
+
+                Indivisible = Width % Xdots != 0 || Height % Ydots != 0;
             }
 
             public bool IncludesPalette
@@ -127,37 +116,43 @@ namespace BfntConverterApp
                 set => SetProperty(ref _isDividedOutput, value);
             }
             private bool _isDividedOutput;
+
+            public bool Indivisible
+            {
+                get => _indivisible;
+                set => SetProperty(ref _indivisible, value);
+            }
+            private bool _indivisible;
+
         }
 
         private readonly ViewModel _viewModel;
-
-        private readonly Image _image;
+        private readonly Image<Bgra32> _image;
         private readonly string? _filePath;
-        private readonly BfntMetadata? _bfntMetadata;
 
-        public SaveWindow()
+        //public SaveWindow()
+        //{
+        //}
+
+        public SaveWindow(Image<Bgra32> image, string? filePath, BfntMetadata? bfntMetadata)
         {
+            _image = image;
+            _filePath = filePath;
+
+            _viewModel = new ViewModel(_image.Width, _image.Height)
+            {
+                Xdots = bfntMetadata?.Xdots ?? 16,
+                Ydots = bfntMetadata?.Ydots ?? 16,
+                Start = bfntMetadata?.Start ?? 0,
+                IncludesPalette = bfntMetadata?.HasPalette ?? false
+            };
+            DataContext = _viewModel;
+
             WPFUI.Background.Manager.Apply(this);
             InitializeComponent();
         }
 
-        public SaveWindow(Image image, string? filePath, BfntMetadata? bfntMetadata) : this()
-        {
-            _image = image;
-            _filePath = filePath;
-            _bfntMetadata = bfntMetadata;
-
-            _viewModel = new ViewModel(_image.Width, _image.Height)
-            {
-                Xdots = _bfntMetadata?.Xdots ?? 16,
-                Ydots = _bfntMetadata?.Ydots ?? 16,
-                Start = _bfntMetadata?.Start ?? 0,
-                IncludesPalette = _bfntMetadata?.HasPalette ?? false
-            };
-            DataContext = _viewModel;
-        }
-
-        private void SaveFileDialog(object sender, RoutedEventArgs e)
+        private string? SelectFile()
         {
             var index = (int)_viewModel.SelectedFormat;
             var extension = new[] { ".bft", ".png", ".webp" }[index];
@@ -173,38 +168,102 @@ namespace BfntConverterApp
                 FileName = System.IO.Path.GetFileNameWithoutExtension(_filePath) + extension
             };
 
-            if (saveFileDialog.ShowDialog() != true)
-                return;
-
-            Save(saveFileDialog.FileName);
+            return saveFileDialog.ShowDialog() != true ? null : saveFileDialog.FileName;
         }
 
-        private void Save(string file)
+        private static string? SelectFolder()
+        {
+            var dialog = new CommonOpenFileDialog("フォルダーの選択")
+            {
+                IsFolderPicker = true
+            };
+            return dialog.ShowDialog() == CommonFileDialogResult.Ok ? dialog.FileName : null;
+        }
+
+        private void SaveImage(string file)
+        {
+            //try
+            //{
+            switch (_viewModel.SelectedFormat)
+            {
+                case ViewModel.Format.BFNT:
+                    _image.Save(file, new BfntEncoder
+                    {
+                        Xdots = _viewModel.Xdots,
+                        Ydots = _viewModel.Ydots,
+                        Start = _viewModel.Start,
+                        IncludesPalette = _viewModel.IncludesPalette
+                    });
+                    break;
+
+                case ViewModel.Format.PNG:
+                    _image.SaveAsPng(file);
+                    break;
+                case ViewModel.Format.WebP:
+                    _image.SaveAsWebp(file);
+                    break;
+                default:
+                    break;
+            }
+            //}
+            //catch (Exception ex)
+            //{
+            //    MessageBox.Show(ex.Message);
+            //}
+        }
+
+        private void SaveImages(string folder)
         {
             try
             {
-                var extension = System.IO.Path.GetExtension(file);
+                var index = (int)_viewModel.SelectedFormat - 1;
+                var extension = new[] { ".png", ".webp" }[index];
 
+                IImageEncoder encoder;
                 switch (_viewModel.SelectedFormat)
                 {
-                    case ViewModel.Format.BFNT:
-                        _image.Save(file, new BfntEncoder
-                        {
-                            Xdots = _viewModel.Xdots,
-                            Ydots = _viewModel.Ydots,
-                            Start = _viewModel.Start,
-                            IncludesPalette = _viewModel.IncludesPalette
-                        });
-                        break;
-
                     case ViewModel.Format.PNG:
-                        _image.SaveAsPng(file);
+                        encoder = new PngEncoder();
                         break;
                     case ViewModel.Format.WebP:
-                        _image.SaveAsWebp(file);
+                        encoder = new WebpEncoder();
                         break;
+
+                    case ViewModel.Format.BFNT:
                     default:
-                        break;
+                        return;
+                }
+
+                var pixelBytes = new byte[_image.Width * _image.Height * Unsafe.SizeOf<Bgra32>()];
+                _image.CopyPixelDataTo(pixelBytes);
+
+                var columns = _image.Width / _viewModel.Xdots;
+
+                for (var code = _viewModel.Start; code <= _viewModel.End; code++)
+                {
+                    var col = code % columns;
+                    var row = code / columns;
+                    var offset = row * _viewModel.Ydots * _image.Width * 4;
+
+                    // create image
+                    var image = new Image<Bgra32>(_viewModel.Xdots, _viewModel.Ydots);
+                    image.ProcessPixelRows(accessor =>
+                    {
+                        for (var y = 0; y < _viewModel.Ydots; y++)
+                        {
+                            var offsetY = offset + y * _image.Width * 4;
+                            var pixelRow = accessor.GetRowSpan(y);
+
+                            for (var x = 0; x < _viewModel.Xdots; x++)
+                            {
+                                var offsetX = col * _viewModel.Xdots * 4;
+                                var i = x * 4 + offsetX + offsetY;
+
+                                pixelRow[x].FromBgra32(new Bgra32(pixelBytes[i + 2], pixelBytes[i + 1], pixelBytes[i], pixelBytes[i + 3]));
+                            }
+                        }
+                    });
+                    image.Save(System.IO.Path.Combine(folder, $"{code}{extension}"), encoder);
                 }
             }
             catch (Exception ex)
@@ -212,7 +271,6 @@ namespace BfntConverterApp
                 MessageBox.Show(ex.Message);
             }
         }
-
 
         private void CompleteButton_OnClick(object sender, RoutedEventArgs e)
         {
@@ -224,5 +282,29 @@ namespace BfntConverterApp
             DialogResult = false;
         }
 
+
+
+        private void Save(object sender, System.Windows.Input.ExecutedRoutedEventArgs e)
+        {
+            if (_viewModel.SelectedFormat != ViewModel.Format.BFNT && _viewModel.IsDividedOutput)
+            {
+                var folder = SelectFolder();
+                if (folder != null)
+                    SaveImages(folder);
+            }
+            else
+            {
+                var file = SelectFile();
+                if (file != null)
+                    SaveImage(file);
+            }
+        }
+
+        private void CanSave(object sender, System.Windows.Input.CanExecuteRoutedEventArgs e)
+        {
+            e.CanExecute = _viewModel.SelectedFormat == ViewModel.Format.BFNT && !_viewModel.Indivisible ||
+                 _viewModel.SelectedFormat != ViewModel.Format.BFNT && _viewModel.IncludesPalette && !_viewModel.IsDividedOutput ||
+                 _viewModel.SelectedFormat != ViewModel.Format.BFNT && !_viewModel.IncludesPalette;
+        }
     }
 }

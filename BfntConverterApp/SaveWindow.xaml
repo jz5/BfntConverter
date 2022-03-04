@@ -15,6 +15,16 @@
     Style="{StaticResource UiWindow}"
     WindowStartupLocation="CenterOwner"
     mc:Ignorable="d">
+    <Window.Resources>
+        <RoutedUICommand x:Key="SaveCommand" />
+    </Window.Resources>
+
+    <Window.CommandBindings>
+        <CommandBinding
+            CanExecute="CanSave"
+            Command="{StaticResource SaveCommand}"
+            Executed="Save" />
+    </Window.CommandBindings>
 
     <Grid>
         <Grid.RowDefinitions>
@@ -47,7 +57,7 @@
                 HorizontalAlignment="Left"
                 DisplayMemberPath="Value"
                 ItemsSource="{Binding Formats}"
-                SelectedValue="{Binding SelectedFormat}"
+                SelectedValue="{Binding SelectedFormat, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
                 SelectedValuePath="Key" />
 
             <StackPanel x:Name="Panel" Grid.Row="1">
@@ -79,6 +89,7 @@
                         <ColumnDefinition Width="Auto" />
                         <ColumnDefinition Width="Auto" />
                         <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="Auto" />
                     </Grid.ColumnDefinitions>
 
                     <Label Content="Xdots" />
@@ -86,7 +97,8 @@
                         Grid.Row="1"
                         Grid.Column="0"
                         Width="100"
-                        Text="{Binding Xdots}" />
+                        local:SelectTextOnFocus.Active="True"
+                        Text="{Binding Xdots, UpdateSourceTrigger=PropertyChanged}" />
                     <Label
                         Grid.Row="1"
                         Grid.Column="1"
@@ -101,7 +113,28 @@
                         Grid.Row="1"
                         Grid.Column="2"
                         Width="100"
-                        Text="{Binding Ydots}" />
+                        local:SelectTextOnFocus.Active="True"
+                        Text="{Binding Ydots, UpdateSourceTrigger=PropertyChanged}" />
+
+                    <StackPanel
+                        Grid.Row="1"
+                        Grid.Column="3"
+                        Margin="10,0,0,0"
+                        Orientation="Horizontal">
+                        <wpfui:Icon Margin="0,0,6,0" Glyph="Warning20" />
+                        <TextBlock VerticalAlignment="Center" Text="割り切れません" />
+                        <StackPanel.Style>
+                            <Style TargetType="StackPanel">
+                                <Setter Property="Visibility" Value="Collapsed" />
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding Indivisible}" Value="True">
+                                        <Setter Property="Visibility" Value="Visible" />
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </StackPanel.Style>
+
+                    </StackPanel>
                 </Grid>
 
                 <Grid Margin="0,8,0,0">
@@ -120,7 +153,8 @@
                         Grid.Row="1"
                         Grid.Column="0"
                         Width="100"
-                        Text="{Binding Start}" />
+                        local:SelectTextOnFocus.Active="True"
+                        Text="{Binding Start, UpdateSourceTrigger=PropertyChanged}" />
                     <Label
                         Grid.Row="1"
                         Grid.Column="1"
@@ -163,6 +197,7 @@
                         <ColumnDefinition Width="Auto" />
                         <ColumnDefinition Width="Auto" />
                         <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="Auto" />
                     </Grid.ColumnDefinitions>
 
                     <Label Content="Xdots" />
@@ -180,7 +215,8 @@
                         Grid.Row="1"
                         Grid.Column="0"
                         Width="100"
-                        Text="{Binding Xdots}" />
+                        local:SelectTextOnFocus.Active="True"
+                        Text="{Binding Xdots, UpdateSourceTrigger=PropertyChanged}" />
                     <Label
                         Grid.Row="1"
                         Grid.Column="1"
@@ -205,7 +241,28 @@
                         Grid.Row="1"
                         Grid.Column="2"
                         Width="100"
-                        Text="{Binding Ydots}" />
+                        local:SelectTextOnFocus.Active="True"
+                        Text="{Binding Ydots, UpdateSourceTrigger=PropertyChanged}" />
+
+                    <StackPanel
+                        Grid.Row="1"
+                        Grid.Column="3"
+                        Margin="10,0,0,0"
+                        Orientation="Horizontal">
+                        <wpfui:Icon Margin="0,0,6,0" Glyph="Warning20" />
+                        <TextBlock VerticalAlignment="Center" Text="割り切れません" />
+                        <StackPanel.Style>
+                            <Style TargetType="StackPanel">
+                                <Setter Property="Visibility" Value="Collapsed" />
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding Indivisible}" Value="True">
+                                        <Setter Property="Visibility" Value="Visible" />
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </StackPanel.Style>
+
+                    </StackPanel>
                 </Grid>
 
                 <Grid Margin="0,8,0,0">
@@ -233,7 +290,8 @@
                         Grid.Row="1"
                         Grid.Column="0"
                         Width="100"
-                        Text="{Binding Start}" />
+                        local:SelectTextOnFocus.Active="True"
+                        Text="{Binding Start, UpdateSourceTrigger=PropertyChanged}" />
                     <Label
                         Grid.Row="1"
                         Grid.Column="1"
@@ -291,10 +349,11 @@
                     </Grid.ColumnDefinitions>
 
                     <wpfui:Button
+                        x:Name="SaveButton"
                         Grid.Column="1"
                         Margin="0,0,4,0"
-                        Appearance="Primary"
-                        Click="SaveFileDialog"
+                        Appearance="Secondary"
+                        Command="{StaticResource SaveCommand}"
                         Content="保存..."
                         Cursor="Hand"
                         Icon="Save20"

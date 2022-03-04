@@ -1,10 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-
-namespace Pronama.ImageSharp.Formats.Bfnt
+﻿namespace Pronama.ImageSharp.Formats.Bfnt
 {
     internal interface IBfntEncoderOptions
     {

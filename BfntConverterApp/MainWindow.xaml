@@ -96,6 +96,11 @@
                         Header="貼り付け(_P)"
                         Icon="{x:Static wpfuiCommon:Icon.ClipboardPaste20}" />
                 </MenuItem>
+                <MenuItem
+                    Click="MenuItem_OnClick"
+                    Header="ヘルプ(_H)"
+                    Icon="{x:Static wpfuiCommon:Icon.QuestionCircle20}"
+                    Tag="help" />
             </Menu>
 
             <local:ZoomBorder

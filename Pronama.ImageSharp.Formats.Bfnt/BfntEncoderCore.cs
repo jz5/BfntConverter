@@ -57,11 +57,11 @@ namespace Pronama.ImageSharp.Formats.Bfnt
 
             // 色数
             var colorBits = 0;
-            var count = palettes.Count;
+            var palettesCount = palettes.Count;
 
             for (var i = 0; i < 24; i++)
             {
-                if (count > 1 << (i + 1))
+                if (palettesCount > 1 << (i + 1))
                     continue;
 
                 colorBits = i;
@@ -86,7 +86,7 @@ namespace Pronama.ImageSharp.Formats.Bfnt
             // START
             bw.Write(_options.Start);
             // END
-            var end = image.Width * image.Height / (_options.Xdots * _options.Ydots);
+            var end = _options.Start + (image.Width * image.Height / (_options.Xdots * _options.Ydots) - 1);
             if (end > ushort.MaxValue)
             {
                 throw new InvalidImageContentException("Invalid Start value.");
@@ -149,11 +149,11 @@ namespace Pronama.ImageSharp.Formats.Bfnt
                         break;
                 }
 
-                for (var code = 0; code < 256; code++)
+                for (var code = 0; code < image.Width * image.Height / (_options.Xdots * _options.Ydots); code++)
                 {
                     var (col, row) = GetColRow(code);
-                    var offsetY = row * _options.Xdots;
-                    var offsetX = col * _options.Ydots;
+                    var offsetY = row * _options.Ydots;
+                    var offsetX = col * _options.Xdots;
 
                     for (var y = 0; y < _options.Ydots; y++)
                     {
