@@ -16,7 +16,7 @@ namespace Pronama.ImageSharp.Formats.Bfnt
 
         private BfntMetadata bfntMetadata;
 
-        private HashSet<int> transparentPallets;
+        private HashSet<int> transparentPalettes;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="BfntDecoderCore"/> class.
@@ -35,18 +35,8 @@ namespace Pronama.ImageSharp.Formats.Bfnt
         /// </summary>
         public ImageMetadata Metadata { get; private set; }
 
-        public Image<TPixel> Decode<TPixel>(Stream stream) where TPixel : unmanaged, IPixel<TPixel>
+        public Image<TPixel> Decode<TPixel>(Stream stream, CancellationToken cancellationToken) where TPixel : unmanaged, IPixel<TPixel>
         {
-            //Image<TPixel> image = new Image<TPixel>(400, 400);
-
-            //TPixel color = default;
-            //color.FromRgba32(new Rgba32(0, 0, 0));
-            //image[200, 200] = color; // also works on ImageFrame<T>
-
-            //return image;
-
-
-
             currentStream = stream;
             currentBinaryReader = new BinaryReader(stream);
 
@@ -89,10 +79,10 @@ namespace Pronama.ImageSharp.Formats.Bfnt
             bfntMetadata.Col = br.ReadByte();
             bfntMetadata.Ver = br.ReadByte();
             br.ReadByte();
-            bfntMetadata.Xdots = br.ReadInt16(); // little endian
-            bfntMetadata.Ydots = br.ReadInt16(); // little endian
-            bfntMetadata.Start = br.ReadInt16(); // little endian
-            bfntMetadata.End = br.ReadInt16(); // little endian
+            bfntMetadata.Xdots = br.ReadUInt16(); // little endian
+            bfntMetadata.Ydots = br.ReadUInt16(); // little endian
+            bfntMetadata.Start = br.ReadUInt16(); // little endian
+            bfntMetadata.End = br.ReadUInt16(); // little endian
 
             bfntMetadata.FontName = new string(br.ReadChars(8));
             var time = br.ReadInt32();
@@ -101,7 +91,7 @@ namespace Pronama.ImageSharp.Formats.Bfnt
 
             var extSize = br.ReadInt16();
             var hdrSize = br.ReadInt16();
-            transparentPallets = new HashSet<int>();
+            transparentPalettes = new HashSet<int>();
 
             //
             // 拡張ヘッダ
@@ -149,7 +139,7 @@ namespace Pronama.ImageSharp.Formats.Bfnt
                         // 透明色パレット指定(3バイト固定)
                         var buf = br.ReadBytes(3);
                         var no = buf[0] << 16 | buf[1] << 8 | buf[2];
-                        transparentPallets.Add(no);
+                        transparentPalettes.Add(no);
 
                     }
                     else if (id == 0x3f)
@@ -179,8 +169,8 @@ namespace Pronama.ImageSharp.Formats.Bfnt
 
             static (int, int) GetColRow(int code)
             {
-                var col = 16;
-                return (code % col, code / col);
+                var columns = 16;
+                return (code % columns, code / columns);
             }
 
             var (_, rowStart) = GetColRow(bfntMetadata.Start);
@@ -194,13 +184,13 @@ namespace Pronama.ImageSharp.Formats.Bfnt
             //
             // パレット
             //
-            var pallets = new List<byte[]>();
-            if (bfntMetadata.HasPallet)
+            var palettes = new List<byte[]>();
+            if (bfntMetadata.HasPalette)
             {
                 for (var i = 0; i < bfntMetadata.ColorCount; i++)
                 {
                     var brg = br.ReadBytes(3);
-                    pallets.Add(brg);
+                    palettes.Add(brg);
                 }
             }
             else
@@ -211,8 +201,7 @@ namespace Pronama.ImageSharp.Formats.Bfnt
                     for (var i = 0; i < bfntMetadata.ColorCount; i++)
                     {
                         var val = (byte)(0xff / (bfntMetadata.ColorCount - 1) * i);
-                        //Console.WriteLine($"pallet {i}: {val.ToString("x2")}");
-                        pallets.Add(new[] { val, val, val });
+                        palettes.Add(new[] { val, val, val });
                     }
                 }
                 else
@@ -245,7 +234,7 @@ namespace Pronama.ImageSharp.Formats.Bfnt
                         {
                             var no = (buf >> (7 - s)) & 0x1;
                             var a = (hasTransparent && (bfntMetadata.TransparentPallets?.Contains(no) ?? false)) ? (byte)0 : (byte)0xff;
-                            bgraBytes[index++] = new Bgra32(pallets[no][1], pallets[no][2], pallets[no][0], a);
+                            bgraBytes[index++] = new Bgra32(palettes[no][1], palettes[no][2], palettes[no][0], a);
                         }
                     }
                 }
@@ -264,11 +253,11 @@ namespace Pronama.ImageSharp.Formats.Bfnt
                         {
                             var no = (buf >> (6 - s)) & 0b11;
                             var a = (hasTransparent && (bfntMetadata.TransparentPallets?.Contains(no) ?? false)) ? (byte)0 : (byte)0xff;
-                            bgraBytes[index++] = new Bgra32(pallets[no][1], pallets[no][2], pallets[no][0], a);
+                            bgraBytes[index++] = new Bgra32(palettes[no][1], palettes[no][2], palettes[no][0], a);
                         }
                     }
                 }
-                else if (bfntMetadata.ColorBits == 2 || bfntMetadata.ColorBits == 3)
+                else if (bfntMetadata.ColorBits is 2 or 3)
                 {
                     // 8 colors
                     // MSB                           LSB
@@ -290,11 +279,11 @@ namespace Pronama.ImageSharp.Formats.Bfnt
                         var a1 = (hasTransparent && (bfntMetadata.TransparentPallets?.Contains(no1) ?? false)) ? (byte)0 : (byte)0xff;
                         var a2 = (hasTransparent && (bfntMetadata.TransparentPallets?.Contains(no2) ?? false)) ? (byte)0 : (byte)0xff;
 
-                        bgraBytes[index++] = new Bgra32(pallets[no1][1], pallets[no1][2], pallets[no1][0], a1);
-                        bgraBytes[index++] = new Bgra32(pallets[no2][1], pallets[no2][2], pallets[no2][0], a2);
+                        bgraBytes[index++] = new Bgra32(palettes[no1][1], palettes[no1][2], palettes[no1][0], a1);
+                        bgraBytes[index++] = new Bgra32(palettes[no2][1], palettes[no2][2], palettes[no2][0], a2);
                     }
                 }
-                else if (bfntMetadata.ColorBits >= 4 && bfntMetadata.ColorBits <= 7)
+                else if (bfntMetadata.ColorBits is >= 4 and <= 7)
                 {
                     // 32 colors ～ 256 colors (1bytes / dot)
                     // MSB                           LSB
@@ -305,10 +294,10 @@ namespace Pronama.ImageSharp.Formats.Bfnt
                     {
                         var no = br.ReadByte();
                         var a = (hasTransparent && (bfntMetadata.TransparentPallets?.Contains(no) ?? false)) ? (byte)0 : (byte)0xff;
-                        bgraBytes[i] = new Bgra32(pallets[no][1], pallets[no][2], pallets[no][0], a);
+                        bgraBytes[i] = new Bgra32(palettes[no][1], palettes[no][2], palettes[no][0], a);
                     }
                 }
-                else if (bfntMetadata.ColorBits >= 8 && bfntMetadata.ColorBits <= 15)
+                else if (bfntMetadata.ColorBits is >= 8 and <= 15)
                 {
                     // 512 colors ～ 65536 colors (2bytes / dot)
                     // MSB                                                           LSB
@@ -320,7 +309,7 @@ namespace Pronama.ImageSharp.Formats.Bfnt
                         var buf = br.ReadBytes(2);
                         var no = buf[0] << 8 | buf[1];
                         var a = (hasTransparent && (bfntMetadata.TransparentPallets?.Contains(no) ?? false)) ? (byte)0 : (byte)0xff;
-                        bgraBytes[i] = new Bgra32(pallets[no][1], pallets[no][2], pallets[no][0], a);
+                        bgraBytes[i] = new Bgra32(palettes[no][1], palettes[no][2], palettes[no][0], a);
                     }
                 }
                 else if (bfntMetadata.ColorBits is >= 16 and <= 23)
@@ -335,7 +324,7 @@ namespace Pronama.ImageSharp.Formats.Bfnt
                         var buf = br.ReadBytes(3);
                         var no = buf[0] << 16 | buf[1] << 8 | buf[2];
                         var a = (hasTransparent && (bfntMetadata.TransparentPallets?.Contains(no) ?? false)) ? (byte)0 : (byte)0xff;
-                        bgraBytes[i] = new Bgra32(pallets[no][1], pallets[no][2], pallets[no][0], a);
+                        bgraBytes[i] = new Bgra32(palettes[no][1], palettes[no][2], palettes[no][0], a);
                     }
                 }
 

@@ -12,7 +12,7 @@ namespace Pronama.ImageSharp.Formats.Bfnt
             var decoder = new BfntDecoderCore(configuration, this);
             try
             {
-                return decoder.Decode<TPixel>(stream);
+                return decoder.Decode<TPixel>(stream, default);
             }
             catch (InvalidMemoryOperationException ex)
             {
@@ -21,7 +21,7 @@ namespace Pronama.ImageSharp.Formats.Bfnt
         }
 
         public Image Decode(Configuration configuration, Stream stream) => Decode<Bgra32>(configuration, stream);
-       
+
 
         public Task<Image<TPixel>> DecodeAsync<TPixel>(Configuration configuration, Stream stream, CancellationToken cancellationToken) where TPixel : unmanaged, IPixel<TPixel>
         {
@@ -33,10 +33,7 @@ namespace Pronama.ImageSharp.Formats.Bfnt
             throw new NotImplementedException();
         }
 
-        public IImageInfo Identify(Configuration configuration, Stream stream)
-        {
-            return new BfntDecoderCore(configuration, this).Identify(stream, default);
-        }
+        public IImageInfo Identify(Configuration configuration, Stream stream) => new BfntDecoderCore(configuration, this).Identify(stream, default);
 
         public Task<IImageInfo> IdentifyAsync(Configuration configuration, Stream stream, CancellationToken cancellationToken)
         {

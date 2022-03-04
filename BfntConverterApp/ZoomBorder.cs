@@ -82,8 +82,8 @@ namespace BfntConverterApp
 
             if (relative.X < 0) relative.X = 0;
             if (relative.Y < 0) relative.Y = 0;
-            if (relative.X > ((Image)_child).ActualWidth) relative.X = ((Image)_child).ActualWidth;
-            if (relative.Y > ((Image)_child).ActualWidth) relative.Y = ((Image)_child).ActualHeight;
+            if (relative.X > ((FrameworkElement)_child).ActualWidth) relative.X = ((FrameworkElement)_child).ActualWidth;
+            if (relative.Y > ((FrameworkElement)_child).ActualWidth) relative.Y = ((FrameworkElement)_child).ActualHeight;
 
 
             var absoluteX = relative.X * st.ScaleX + tt.X;

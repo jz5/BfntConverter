@@ -1,6 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.ComponentModel;
+using System.Configuration;
+using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Windows;
 using System.Windows.Controls;
@@ -20,6 +22,7 @@ using SixLabors.ImageSharp.Formats.Tga;
 using SixLabors.ImageSharp.Formats.Tiff;
 using SixLabors.ImageSharp.Formats.Webp;
 using SixLabors.ImageSharp.PixelFormats;
+using Configuration = SixLabors.ImageSharp.Configuration;
 using Image = SixLabors.ImageSharp.Image;
 
 namespace BfntConverterApp
@@ -27,39 +30,32 @@ namespace BfntConverterApp
     /// <summary>
     /// Interaction logic for MainWindow.xaml
     /// </summary>
-    public partial class MainWindow
+    public partial class MainWindow : Window
     {
-        internal class ViewModel : INotifyPropertyChanged
+        internal class ViewModel : BindableBase
         {
-            public event PropertyChangedEventHandler? PropertyChanged;
-
-            protected void OnPropertyChanged(string name)
-            {
-                PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(name));
-            }
-
-            private string _statusText = "";
             public string StatusText
             {
                 get => _statusText;
-                set
-                {
-                    if (value == _statusText) return;
-                    _statusText = value;
-                    OnPropertyChanged(nameof(StatusText));
-                }
+                set => SetProperty(ref _statusText, value);
             }
+            private string _statusText = "";
         }
 
         private readonly ViewModel _viewModel = new();
         private Image? _image;
         private string? _filePath;
+        private BfntMetadata? _bfntMetadata;
 
         public MainWindow()
         {
             InitializeComponent();
             DataContext = _viewModel;
             SetTitle();
+
+#if DEBUG
+            Open(@"\\Mac\Home\Downloads\GAJETICN.png");
+#endif
         }
 
         public MainWindow(IReadOnlyList<string?> args) : this()
@@ -143,11 +139,12 @@ namespace BfntConverterApp
 
                     if (format.Name == "BFNT")
                     {
-                        var metadata = imageInfo.Metadata.GetBfntMetadata();
-                        _viewModel.StatusText = $"{metadata.ColorCount}色 {metadata.Xdots}x{metadata.Ydots} {metadata.Start}-{metadata.End} パレットデータ{(metadata.HasPallet ? "あり" : "なし")}";
+                        _bfntMetadata = imageInfo.Metadata.GetBfntMetadata();
+                        _viewModel.StatusText = $"{_bfntMetadata.ColorCount}色 {_bfntMetadata.Xdots}x{_bfntMetadata.Ydots} {_bfntMetadata.Start}-{_bfntMetadata.End} パレットデータ{(_bfntMetadata.HasPalette ? "あり" : "なし")}";
                     }
-                    else 
+                    else
                     {
+                        _bfntMetadata = null;
                         _viewModel.StatusText = $"{imageInfo.Width}x{imageInfo.Height}";
                     }
                 }
@@ -171,18 +168,15 @@ namespace BfntConverterApp
         private void SetImage(Image<Bgra32> image)
         {
             // Image to BitmapSource
-            if (!image.DangerousTryGetSinglePixelMemory(out var pixel))
-                return;
-
-            var bytes = MemoryMarshal.AsBytes(pixel.Span).ToArray();
+            var pixelBytes = new byte[image.Width * image.Height * Unsafe.SizeOf<Bgra32>()];
+            image.CopyPixelDataTo(pixelBytes);
             var bmp = BitmapSource.Create(image.Width, image.Height, 96, 96, PixelFormats.Bgra32, null,
-                bytes, image.Width * 4);
+                pixelBytes, image.Width * 4);
 
             ZoomBorder.Reset();
-
             ZoomImage.Source = bmp;
-            ZoomImage.Width = bmp.Width;
-            ZoomImage.Height = bmp.Height;
+            ZoomCanvas.Width = bmp.Width;
+            ZoomCanvas.Height = bmp.Height;
         }
 
         private void Open(object sender, ExecutedRoutedEventArgs e) => OpenFileDialog();
@@ -191,7 +185,7 @@ namespace BfntConverterApp
         {
             var openFileDialog = new OpenFileDialog
             {
-                Filter = "BFNT (*.BFT; *.FNT)|*.BFT;*.FNT|画像タイプ (*.png; *.jpeg)|*.png;*.jpeg|すべてのファイル (*.*)|*.*",
+                Filter = "BFNT (*.BFT; *.FNT)|*.BFT;*.FNT|画像タイプ (*.png; *.jpg; *.jpeg; *.jpe; *.jfif; *.exif; *.bmp; *.dib; *.rle; *tiff; *.tif; *.gif; *webp)|*.png;*.jpg;*.jpeg;*.jpe;*.jfif;*.exif;*.bmp;*.dib;*.rle;*tiff;*.tif;*.gif;*webp|すべてのファイル (*.*)|*.*",
                 CheckFileExists = true,
                 Multiselect = false
             };
@@ -206,43 +200,14 @@ namespace BfntConverterApp
 
         private void SaveFileDialog()
         {
-            var saveFileDialog = new SaveFileDialog
+            if (_image == null) return;
+
+            var saveWindow = new SaveWindow(_image, _filePath, _bfntMetadata)
             {
-                Filter = "PNG(*.png)|*.png",
-                CheckPathExists = true,
-                OverwritePrompt = true,
-                AddExtension = true,
-                FileName = System.IO.Path.GetFileNameWithoutExtension(_filePath) + ".png"
+                Owner = this
             };
-
-            if (saveFileDialog.ShowDialog() != true)
-                return;
-
-            Save(saveFileDialog.FileName);
+            saveWindow.ShowDialog();
         }
-
-        private void Save(string file)
-        {
-            try
-            {
-                var extension = System.IO.Path.GetExtension(file);
-
-                switch (extension.ToUpperInvariant())
-                {
-                    case ".PNG":
-                        _image.SaveAsPng(file);
-                        break;
-                    default:
-                        MessageBox.Show("サポートしていない形式です。");
-                        break;
-                }
-            }
-            catch (Exception ex)
-            {
-                MessageBox.Show(ex.Message);
-            }
-        }
-
 
         private void Copy(object sender, ExecutedRoutedEventArgs e) => CopyImageToClipboard();
         private void CopyImageToClipboard()
@@ -263,6 +228,39 @@ namespace BfntConverterApp
         private void CanCopy(object sender, CanExecuteRoutedEventArgs e)
         {
             e.CanExecute = _image != null;
+        }
+
+        private void Paste(object sender, ExecutedRoutedEventArgs e)
+        {
+            try
+            {
+                var bitmapSource = Clipboard.GetImage();
+                if (bitmapSource == null)
+                {
+                    return;
+                }
+                byte[] pixels = new byte[(int)bitmapSource.Width * (int)bitmapSource.Height * 4];
+
+                // BitmapSourceから配列にコピー
+                var stride = ((int)bitmapSource.Width * bitmapSource.Format.BitsPerPixel + 7) / 8;
+                bitmapSource.CopyPixels(pixels, stride, 0);
+                var image = Image.LoadPixelData<Bgra32>(pixels, (int)bitmapSource.Width, (int)bitmapSource.Height);
+
+
+                _viewModel.StatusText = $"{(int)bitmapSource.Width}x{(int)bitmapSource.Height}";
+
+                _image = image;
+                SetImage(image);
+
+                SetTitle();
+                _filePath = null;
+                _bfntMetadata = null;
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show(messageBoxText: ex.Message);
+            }
+
         }
     }
 }

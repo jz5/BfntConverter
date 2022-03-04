@@ -31,10 +31,10 @@ namespace Pronama.ImageSharp.Formats.Bfnt
 
         public byte Col { get; set; }
         public byte Ver { get; set; }
-        public int Xdots { get; set; }
-        public int Ydots { get; set; }
-        public int Start { get; set; }
-        public int End { get; set; }
+        public ushort Xdots { get; set; }
+        public ushort Ydots { get; set; }
+        public ushort Start { get; set; }
+        public ushort End { get; set; }
         public string? FontName { get; set; }
         public DateTimeOffset? Time { get; set; }
         //public int ExtSize { get; set; }
@@ -69,7 +69,7 @@ namespace Pronama.ImageSharp.Formats.Bfnt
         #region Helper properties
 
         public string Version => $"{Ver >> 4}.{Ver & 0b1111}";
-        public bool HasPallet => Col >> 7 == 1;
+        public bool HasPalette => Col >> 7 == 1;
         public int ColorBits => Col & 0b111_1111;
         public int ColorCount => 1 << (ColorBits + 1);
         #endregion

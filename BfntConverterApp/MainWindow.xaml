@@ -18,6 +18,7 @@
         <RoutedUICommand x:Key="OpenCommand" />
         <RoutedUICommand x:Key="SaveCommand" />
         <RoutedUICommand x:Key="CopyCommand" />
+        <RoutedUICommand x:Key="PasteCommand" />
     </Window.Resources>
 
     <Window.CommandBindings>
@@ -30,6 +31,7 @@
             CanExecute="CanCopy"
             Command="{StaticResource CopyCommand}"
             Executed="Copy" />
+        <CommandBinding Command="{StaticResource PasteCommand}" Executed="Paste" />
     </Window.CommandBindings>
 
     <Window.InputBindings>
@@ -44,6 +46,10 @@
         <KeyBinding
             Key="C"
             Command="{StaticResource CopyCommand}"
+            Modifiers="Ctrl" />
+        <KeyBinding
+            Key="V"
+            Command="{StaticResource PasteCommand}"
             Modifiers="Ctrl" />
     </Window.InputBindings>
 
@@ -64,34 +70,45 @@
                 Icon="pack://application:,,,/Assets/icon.png" />
 
             <Menu Grid.Row="1" Background="Transparent">
-                <MenuItem Header="ファイル" Icon="{x:Static wpfuiCommon:Icon.Document20}">
+                <MenuItem Header="ファイル(_F)" Icon="{x:Static wpfuiCommon:Icon.Document20}">
                     <MenuItem
                         Command="{StaticResource OpenCommand}"
-                        Header="開く..."
+                        Header="開く(_O)..."
                         Icon="{x:Static wpfuiCommon:Icon.FolderOpen20}" />
                     <MenuItem
                         Command="{StaticResource SaveCommand}"
-                        Header="保存..."
+                        Header="保存(_S)..."
                         Icon="{x:Static wpfuiCommon:Icon.Save20}" />
                     <Separator />
                     <MenuItem
                         Click="MenuItem_OnClick"
-                        Header="終了"
+                        Header="終了(_X)"
+                        Icon="{x:Static wpfuiCommon:Icon.SignOut20}"
                         Tag="close" />
                 </MenuItem>
-                <MenuItem Header="編集" Icon="{x:Static wpfuiCommon:Icon.DocumentEdit20}">
+                <MenuItem Header="編集(_E)" Icon="{x:Static wpfuiCommon:Icon.DocumentEdit20}">
                     <MenuItem
                         Command="{StaticResource CopyCommand}"
-                        Header="コピー"
+                        Header="コピー(_C)"
                         Icon="{x:Static wpfuiCommon:Icon.Copy20}" />
+                    <MenuItem
+                        Command="{StaticResource PasteCommand}"
+                        Header="貼り付け(_P)"
+                        Icon="{x:Static wpfuiCommon:Icon.ClipboardPaste20}" />
                 </MenuItem>
             </Menu>
 
             <local:ZoomBorder
                 x:Name="ZoomBorder"
                 Grid.Row="2"
+                Background="Transparent"
                 ClipToBounds="True">
-                <Image Name="ZoomImage" RenderOptions.BitmapScalingMode="NearestNeighbor" />
+                <Canvas
+                    Name="ZoomCanvas"
+                    HorizontalAlignment="Center"
+                    VerticalAlignment="Center">
+                    <Image Name="ZoomImage" RenderOptions.BitmapScalingMode="NearestNeighbor" />
+                </Canvas>
             </local:ZoomBorder>
 
             <StatusBar x:Name="RootStatusBar" Grid.Row="3">
