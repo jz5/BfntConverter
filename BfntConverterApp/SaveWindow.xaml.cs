@@ -303,8 +303,8 @@ namespace BfntConverterApp
         private void CanSave(object sender, System.Windows.Input.CanExecuteRoutedEventArgs e)
         {
             e.CanExecute = _viewModel.SelectedFormat == ViewModel.Format.BFNT && !_viewModel.Indivisible ||
-                 _viewModel.SelectedFormat != ViewModel.Format.BFNT && _viewModel.IncludesPalette && !_viewModel.IsDividedOutput ||
-                 _viewModel.SelectedFormat != ViewModel.Format.BFNT && !_viewModel.IncludesPalette;
+                 _viewModel.SelectedFormat != ViewModel.Format.BFNT && _viewModel.Indivisible && !_viewModel.IsDividedOutput ||
+                 _viewModel.SelectedFormat != ViewModel.Format.BFNT && !_viewModel.Indivisible;
         }
     }
 }
