@@ -182,34 +182,34 @@ namespace BfntConverterApp
 
         private void SaveImage(string file)
         {
-            //try
-            //{
-            switch (_viewModel.SelectedFormat)
+            try
             {
-                case ViewModel.Format.BFNT:
-                    _image.Save(file, new BfntEncoder
-                    {
-                        Xdots = _viewModel.Xdots,
-                        Ydots = _viewModel.Ydots,
-                        Start = _viewModel.Start,
-                        IncludesPalette = _viewModel.IncludesPalette
-                    });
-                    break;
+                switch (_viewModel.SelectedFormat)
+                {
+                    case ViewModel.Format.BFNT:
+                        _image.Save(file, new BfntEncoder
+                        {
+                            Xdots = _viewModel.Xdots,
+                            Ydots = _viewModel.Ydots,
+                            Start = _viewModel.Start,
+                            IncludesPalette = _viewModel.IncludesPalette
+                        });
+                        break;
 
-                case ViewModel.Format.PNG:
-                    _image.SaveAsPng(file);
-                    break;
-                case ViewModel.Format.WebP:
-                    _image.SaveAsWebp(file);
-                    break;
-                default:
-                    break;
+                    case ViewModel.Format.PNG:
+                        _image.SaveAsPng(file);
+                        break;
+                    case ViewModel.Format.WebP:
+                        _image.SaveAsWebp(file);
+                        break;
+                    default:
+                        break;
+                }
             }
-            //}
-            //catch (Exception ex)
-            //{
-            //    MessageBox.Show(ex.Message);
-            //}
+            catch (Exception ex)
+            {
+                MessageBox.Show(ex.Message);
+            }
         }
 
         private void SaveImages(string folder)

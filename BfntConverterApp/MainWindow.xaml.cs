@@ -123,8 +123,8 @@ namespace BfntConverterApp
             _viewModel.StatusText = "";
             ZoomImage.Source = null;
 
-            //try
-            //{
+            try
+            {
                 var configuration = new Configuration(
                     new PngConfigurationModule(),
                     new JpegConfigurationModule(),
@@ -163,11 +163,11 @@ namespace BfntConverterApp
 
                 SetTitle(file);
                 _filePath = file;
-            //}
-            //catch (Exception ex)
-            //{
-            //    MessageBox.Show(ex.Message);
-            //}
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show(ex.Message);
+            }
         }
 
         private void SetImage(Image<Bgra32> image)
