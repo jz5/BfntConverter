@@ -130,10 +130,6 @@ namespace BfntConverterApp
         private readonly Image<Bgra32> _image;
         private readonly string? _filePath;
 
-        //public SaveWindow()
-        //{
-        //}
-
         public SaveWindow(Image<Bgra32> image, string? filePath, BfntMetadata? bfntMetadata)
         {
             _image = image;
@@ -148,7 +144,7 @@ namespace BfntConverterApp
             };
             DataContext = _viewModel;
 
-            WPFUI.Background.Manager.Apply(this);
+            WPFUI.Theme.Manager.Switch(WPFUI.Theme.Style.Dark);
             InitializeComponent();
         }
 
